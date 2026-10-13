@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prison Island 수칙</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <style>
+    * {
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #000000;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 제목 그라데이션: 왼쪽 파랑(#1d4ed8 ~ #38bdf8), 오른쪽 순백(#ffffff) */
+    .title-gradient {
+      background: linear-gradient(90deg, #2563eb 0%, #38bdf8 35%, #93c5fd 65%, #ffffff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* 진입 버튼 네온 핑크 효과 */
+    .btn-neon-pink {
+      background-color: #050505;
+      color: #ffffff;
+      border: 2px solid #ff2a85;
+      box-shadow: 0 0 12px rgba(255, 42, 133, 0.65), inset 0 0 8px rgba(255, 42, 133, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-neon-pink:hover {
+      box-shadow: 0 0 24px rgba(255, 42, 133, 0.95), inset 0 0 14px rgba(255, 42, 133, 0.6);
+      transform: translateY(-2px);
+      text-shadow: 0 0 8px #ff70a6;
+    }
+
+    /* 카드 호버 및 테두리 효과 */
+    .cyber-card {
+      background: rgba(12, 12, 18, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+    }
+    .cyber-card:hover {
+      border-color: rgba(56, 189, 248, 0.7);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+      transform: translateY(-3px);
+    }
+
+    /* 바다 배경 오버레이 및 캔버스 */
+    .ocean-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 팝업 모달 애니메이션 */
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-content {
+      animation: modalFadeIn 0.25s ease-out forwards;
+    }
+
+    /* 커스텀 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020202;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff2a85;
+    }
+  </style>
+</head>
+<body class="relative min-h-screen">
+
+  <!-- ==================== 1. 첫 화면 (인트로 랜딩) ==================== -->
+  <section id="intro-screen" class="relative w-full h-screen flex flex-col items-center justify-center z-20 px-4 select-none">
+    <!-- 바다 배경 캔버스 (시각적 심해 파도 효과) -->
+    <div class="ocean-bg">
+      <canvas id="seaCanvas" class="w-full h-full"></canvas>
+      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/80"></div>
+    </div>
+
+    <!-- 인트로 본문 영역 -->
+    <div class="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto">
+      <p class="text-xs md:text-sm tracking-[0.35em] text-cyan-400 font-mono mb-4 uppercase drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]">
+        CLASSIFIED PROTOCOL // PRISON ISLAND
+      </p>
+
+      <!-- 맨 위 제목 텍스트 (왼쪽 파랑 -> 오른쪽 하양) -->
+      <h1 class="title-gradient text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight py-2 mb-6 drop-shadow-lg">
+        Prison Island 수칙
+      </h1>
+
+      <p class="text-gray-300 text-sm sm:text-base md:text-lg max-w-2xl font-medium tracking-wide mb-10 text-stone-300">
+        “찬란한 일생을 방해받으신 여러분을 위한 영겁의 감옥, 용서받지 못한 죄의 무인도.”
+      </p>
+
+      <!-- 진입 버튼 (분홍색 네온 테두리 검은 버튼) -->
+      <button id="btn-enter" class="btn-neon-pink px-10 py-3.5 rounded-full font-bold text-base md:text-lg tracking-widest uppercase cursor-pointer">
+        진입
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 2. 본 화면 (진입 후 활성화 영역) ==================== -->
+  <main id="main-content" class="hidden relative z-10 w-full min-h-screen pb-32 pt-16 px-4 md:px-8 max-w-6xl mx-auto">
+    
+    <!-- 상단 헤더 브리핑 바 -->
+    <div class="border-b border-gray-800 pb-6 mb-12 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      <div>
+        <p class="text-xs font-mono text-pink-500 uppercase tracking-widest mb-1">SYSTEM ONLINE</p>
+        <h2 class="title-gradient text-2xl md:text-4xl font-extrabold">PRISON ISLAND LORE ARCHIVE</h2>
+      </div>
+      <div class="text-xs text-gray-400 font-mono bg-neutral-900 px-3 py-1.5 rounded border border-neutral-800">
+        시대 설정: <span class="text-white font-semibold">초능력이 존재하는 현대</span>
+      </div>
+    </div>
+
+    <!-- ---------------- [세계관 정보 섹션] ---------------- -->
+    <section class="mb-20">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-1.5 h-6 bg-pink-500 rounded"></div>
+        <h3 class="text-xl md:text-2xl font-bold tracking-wider text-white">세계관 정보</h3>
+        <span class="text-xs text-gray-400 font-normal">카드 제목을 클릭하여 열람 후 닫으면 캐릭터 목록이 해금된다.</span>
+      </div>
+
+      <!-- 3개 역할 카드 그리드 (제목만 보임) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- 1. 증인 카드 -->
+        <div class="flex flex-col">
+          <div onclick="openRoleModal('witness')" class="cyber-card p-6 rounded-xl cursor-pointer flex flex-col justify-between h-44 group border-l-4 border-l-blue-500">
+            <div>
+              <span class="text-xs font-mono text-blue-400 font-semibold">[ROLE: WITNESS]</span>
+              <h4 class="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors mt-2">
+                증인 [캐릭터 1인]
+              </h4>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-gray-800/80">
+              <span class="text-xs text-gray-400">규칙 및 권한 열람</span>
+              <span class="text-xs font-mono text-cyan-400 group-hover:translate-x-1 transition-transform">ACCESS ➔</span>
+            </div>
+          </div>
+          <!-- 증인 캐릭터 목록 (모달을 본 뒤 닫아야만 등장) -->
+          <div id="character-list-witness" class="hidden mt-4 pt-4 border-t border-neutral-800 space-y-3"></div>
+        </div>
+
+        <!-- 2. 수감자 카드 -->
+        <div class="flex flex-col">
+          <div onclick="openRoleModal('prisoner')" class="cyber-card p-6 rounded-xl cursor-pointer flex flex-col justify-between h-44 group border-l-4 border-l-pink-500">
+            <div>
+              <span class="text-xs font-mono text-pink-400 font-semibold">[ROLE: PRISONER]</span>
+              <h4 class="text-xl font-bold text-white group-hover:text-pink-300 transition-colors mt-2">
+                수감자 [캐릭터 4인]
+              </h4>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-gray-800/80">
+              <span class="text-xs text-gray-400">규칙 및 제약 열람</span>
+              <span class="text-xs font-mono text-pink-400 group-hover:translate-x-1 transition-transform">ACCESS ➔</span>
+            </div>
+          </div>
+          <!-- 수감자 캐릭터 목록 (모달을 본 뒤 닫아야만 등장) -->
+          <div id="character-list-prisoner" class="hidden mt-4 pt-4 border-t border-neutral-800 space-y-3"></div>
+        </div>
+
+        <!-- 3. 집행자 카드 -->
+        <div class="flex flex-col">
+          <div onclick="openRoleModal('executor')" class="cyber-card p-6 rounded-xl cursor-pointer flex flex-col justify-between h-44 group border-l-4 border-l-purple-500">
+            <div>
+              <span class="text-xs font-mono text-purple-400 font-semibold">[ROLE: EXECUTOR]</span>
+              <h4 class="text-xl font-bold text-white group-hover:text-purple-300 transition-colors mt-2">
+                집행자 [캐릭터 1인]
+              </h4>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-gray-800/80">
+              <span class="text-xs text-gray-400">규칙 및 심판권 열람</span>
+              <span class="text-xs font-mono text-purple-400 group-hover:translate-x-1 transition-transform">ACCESS ➔</span>
+            </div>
+          </div>
+          <!-- 집행자 캐릭터 목록 (모달을 본 뒤 닫아야만 등장) -->
+          <div id="character-list-executor" class="hidden mt-4 pt-4 border-t border-neutral-800 space-y-3"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ---------------- [섬 정보 섹션] ---------------- -->
+    <section class="space-y-12">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1.5 h-6 bg-cyan-400 rounded"></div>
+        <h3 class="text-xl md:text-2xl font-bold tracking-wider text-white">섬 정보</h3>
+      </div>
+
+      <!-- 섬 규칙 & 설명 그리드 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 섬 규칙 -->
+        <div class="cyber-card p-6 md:p-8 rounded-2xl relative overflow-hidden">
+          <div class="text-xs font-mono text-red-400 tracking-wider mb-2">RESTRICTION PROTOCOL</div>
+          <h4 class="text-lg md:text-xl font-bold text-white mb-5 flex items-center gap-2">
+            <span class="text-red-500">■</span> 섬 규칙
+          </h4>
+          <ul class="space-y-4 text-sm md:text-base text-gray-200">
+            <li class="flex items-start gap-2">
+              <span class="text-pink-400 font-bold font-mono">01.</span>
+              <span>SOS를 그리지 마라.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-pink-400 font-bold font-mono">02.</span>
+              <span>임의로 탈출하지 마라.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-pink-400 font-bold font-mono">03.</span>
+              <span>증인을 제외한 대상은 정해진 구역을 벗어나지 마라.</span>
+            </li>
+          </ul>
+          <div class="mt-6 p-3.5 bg-red-950/40 border border-red-800/60 rounded-xl text-xs sm:text-sm text-red-200">
+            ⚠ 위반 시 제한시간 단축 및 집행자의 처벌 시행.
+          </div>
+        </div>
+
+        <!-- 섬 설명 -->
+        <div class="cyber-card p-6 md:p-8 rounded-2xl">
+          <div class="text-xs font-mono text-cyan-400 tracking-wider mb-2">SURVIVAL BRIEFING</div>
+          <h4 class="text-lg md:text-xl font-bold text-white mb-5 flex items-center gap-2">
+            <span class="text-cyan-400">■</span> 섬 설명
+          </h4>
+          <div class="space-y-4 text-sm md:text-base text-gray-200">
+            <p class="leading-relaxed">
+              • 들어오는 즉시 증인을 제외한 전원 공식 사망 처리된다.
+            </p>
+            <p class="leading-relaxed">
+              • 증인이 교부한 티켓을 소지해야만 증인과 함께 원래 세계로 귀환할 수 있다.
+            </p>
+            <p class="leading-relaxed text-amber-200">
+              • 제한시간인 15일 이내에 증인에게 티켓을 획득하지 못하면 탈출 불가. <span class="line-through text-red-400">영원히</span>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 섬 지리 (레이더 다이어그램 및 설명) -->
+      <div class="cyber-card p-6 md:p-8 rounded-2xl">
+        <div class="text-xs font-mono text-cyan-400 tracking-wider mb-2">GEOGRAPHICAL MAP</div>
+        <h4 class="text-lg md:text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <span class="text-cyan-400">■</span> 섬 지리 (4분원 구역도)
+        </h4>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <!-- 원형 HUD 전술 지도 SVG -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="relative w-64 h-64 sm:w-72 sm:h-72">
+              <svg viewBox="0 0 240 240" class="w-full h-full drop-shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+                <!-- 원형 외곽선 -->
+                <circle cx="120" cy="120" r="105" fill="#080c14" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
+                <circle cx="120" cy="120" r="85" fill="none" stroke="#1e293b" stroke-width="1"/>
+                
+                <!-- 4분원 분할선 -->
+                <line x1="120" y1="15" x2="120" y2="225" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.6"/>
+                <line x1="15" y1="120" x2="225" y2="120" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.6"/>
+
+                <!-- 각 분원 영역 색상 오버레이 -->
+                <!-- 좌측 상단: 산맥 -->
+                <path d="M 120 120 L 120 15 A 105 105 0 0 0 15 120 Z" fill="#1e3a8a" fill-opacity="0.3"/>
+                <!-- 우측 상단: 사막 -->
+                <path d="M 120 120 L 225 120 A 105 105 0 0 0 120 15 Z" fill="#b45309" fill-opacity="0.25"/>
+                <!-- 좌측 하단: 밀림 -->
+                <path d="M 120 120 L 15 120 A 105 105 0 0 0 120 225 Z" fill="#065f46" fill-opacity="0.3"/>
+                <!-- 우측 하단: 평야 -->
+                <path d="M 120 120 L 120 225 A 105 105 0 0 0 225 120 Z" fill="#3f3f46" fill-opacity="0.25"/>
+
+                <!-- 베이스 캠프 노드 (각 구역당 1개) -->
+                <!-- 산맥 캠프 -->
+                <circle cx="65" cy="65" r="5" fill="#60a5fa"/>
+                <text x="65" y="52" fill="#93c5fd" font-size="7" font-weight="bold" text-anchor="middle" font-family="monospace">CAMP #1</text>
+
+                <!-- 사막 캠프 -->
+                <circle cx="175" cy="65" r="5" fill="#f59e0b"/>
+                <text x="175" y="52" fill="#fde68a" font-size="7" font-weight="bold" text-anchor="middle" font-family="monospace">CAMP #3</text>
+
+                <!-- 밀림 캠프 -->
+                <circle cx="65" cy="175" r="5" fill="#34d399"/>
+                <text x="65" y="195" fill="#a7f3d0" font-size="7" font-weight="bold" text-anchor="middle" font-family="monospace">CAMP #2</text>
+
+                <!-- 평야 캠프 -->
+                <circle cx="175" cy="175" r="5" fill="#a1a1aa"/>
+                <text x="175" y="195" fill="#e4e4e7" font-size="7" font-weight="bold" text-anchor="middle" font-family="monospace">CAMP #4</text>
+
+                <!-- 중앙 코어 -->
+                <circle cx="120" cy="120" r="8" fill="#ff2a85"/>
+                <circle cx="120" cy="120" r="14" fill="none" stroke="#ff2a85" stroke-width="1" stroke-dasharray="2 2"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 구역 설명 상세 카드 -->
+          <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-black/50 p-4 rounded-xl border border-blue-900/40">
+              <span class="text-xs font-mono text-blue-400 font-bold block mb-1">NORTH-WEST [NW]</span>
+              <p class="font-bold text-white text-base">거대한 산맥 지대</p>
+              <p class="text-xs text-gray-400 mt-1">지형 험준 / 베이스캠프 #1 위치</p>
+            </div>
+
+            <div class="bg-black/50 p-4 rounded-xl border border-amber-900/40">
+              <span class="text-xs font-mono text-amber-400 font-bold block mb-1">NORTH-EAST [NE]</span>
+              <p class="font-bold text-white text-base">사막 지대</p>
+              <p class="text-xs text-gray-400 mt-1">극심한 탈수 환경 / 베이스캠프 #3 위치</p>
+            </div>
+
+            <div class="bg-black/50 p-4 rounded-xl border border-emerald-900/40">
+              <span class="text-xs font-mono text-emerald-400 font-bold block mb-1">SOUTH-WEST [SW]</span>
+              <p class="font-bold text-white text-base">밀림 지대</p>
+              <p class="text-xs text-gray-400 mt-1">시야 제한 및 고습도 / 베이스캠프 #2 위치</p>
+            </div>
+
+            <div class="bg-black/50 p-4 rounded-xl border border-neutral-700/50">
+              <span class="text-xs font-mono text-gray-400 font-bold block mb-1">SOUTH-EAST [SE]</span>
+              <p class="font-bold text-white text-base">평야 지대</p>
+              <p class="text-xs text-gray-400 mt-1">개방형 평지 / 베이스캠프 #4 위치</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== 3. 팝업 모달 ==================== -->
+  <div id="role-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="modal-content cyber-card w-full max-w-md p-6 rounded-2xl relative border border-cyan-500/50 shadow-2xl">
+      <!-- 닫기 버튼 -->
+      <button onclick="closeRoleModal()" class="absolute top-4 right-4 text-gray-400 hover:text-pink-500 text-xl font-bold p-1">
+        ✕
+      </button>
+
+      <!-- 모달 타이틀 -->
+      <div id="modal-role-badge" class="text-xs font-mono mb-1">ROLE INFO</div>
+      <h3 id="modal-role-title" class="text-2xl font-black text-white mb-4"></h3>
+
+      <!-- 키워드 태그 -->
+      <div id="modal-role-keywords" class="flex flex-wrap gap-2 mb-4"></div>
+
+      <!-- 모달 상세 내용 리스트 -->
+      <div id="modal-role-desc" class="space-y-2 text-sm text-gray-200 border-t border-neutral-800 pt-4 mb-6"></div>
+
+      <!-- 확인 닫기 버튼 -->
+      <button onclick="closeRoleModal()" class="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 hover:border-pink-500 text-white font-bold rounded-xl text-sm transition-colors">
+        확인 및 인명부 해금
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== 4. 우측 하단 오디오 컨트롤러 바 ==================== -->
+  <div id="audio-controller" class="hidden fixed bottom-4 right-4 z-40 bg-black/90 border border-pink-500/60 shadow-[0_0_15px_rgba(255,42,133,0.35)] rounded-2xl p-3.5 flex items-center gap-3 backdrop-blur-md">
+    <!-- 재생 / 일시정지 버튼 -->
+    <button id="audio-toggle-btn" class="w-8 h-8 rounded-full bg-pink-500/20 text-pink-400 hover:bg-pink-500 hover:text-white flex items-center justify-center transition-colors">
+      <svg id="icon-pause" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      <svg id="icon-play" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+
+    <!-- 트랙 정보 & 프로그레스 바 -->
+    <div class="flex flex-col gap-1 w-32 sm:w-44">
+      <div class="flex justify-between items-center text-[10px] text-gray-400 font-mono">
+        <span class="text-pink-400 font-bold">BGM</span>
+        <span id="audio-current-time">0:00</span>
+      </div>
+      <div id="progress-container" class="w-full h-1.5 bg-neutral-800 rounded-full cursor-pointer relative overflow-hidden">
+        <div id="audio-progress" class="h-full bg-pink-500 rounded-full w-0 transition-all duration-100"></div>
+      </div>
+    </div>
+
+    <!-- 음소거 토글 버튼 -->
+    <button id="audio-mute-btn" class="text-gray-400 hover:text-pink-400 p-1.5 transition-colors" title="음소거 토글">
+      <svg id="icon-sound" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      <svg id="icon-muted" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+    </button>
+  </div>
+
+  <!-- 오디오 엘리먼트 -->
+  <audio id="bgm-audio" loop preload="auto">
+    <source src="https://www.image2url.com/r2/default/audio/1786245969339-523ae63b-5f73-498f-a1ed-daf32f6c7e93.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ==================== 5. 스크립트 로직 ==================== -->
+  <script>
+    // 바다 배경 애니메이션 (어두운 파도 시뮬레이션)
+    const canvas = document.getElementById('seaCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let waveStep = 0;
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawSea() {
+      ctx.clearRect(0, 0, width, height);
+      waveStep += 0.02;
+
+      // 심해 층 1
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      for (let x = 0; x <= width; x += 20) {
+        const y = Math.sin(x * 0.003 + waveStep) * 35 + Math.cos(x * 0.002 + waveStep * 0.8) * 20 + height * 0.65;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height);
+      ctx.fillStyle = "rgba(4, 18, 38, 0.45)";
+      ctx.fill();
+
+      // 심해 층 2
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      for (let x = 0; x <= width; x += 20) {
+        const y = Math.sin(x * 0.004 - waveStep * 0.7) * 45 + Math.sin(x * 0.0015 + waveStep) * 25 + height * 0.75;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height);
+      ctx.fillStyle = "rgba(2, 8, 20, 0.75)";
+      ctx.fill();
+
+      requestAnimationFrame(drawSea);
+    }
+    drawSea();
+
+    // 세계관 역할 데이터 명세 (감상적이지 않고 간결한 수칙/설명)
+    const ROLE_DATA = {
+      witness: {
+        badge: "ROLE: WITNESS",
+        badgeColor: "text-blue-400",
+        title: "증인 [캐릭터 1인]",
+        keywords: ["피해자", "티켓 지님"],
+        descriptions: [
+          "• 수감자들에게 피해를 입은 대상.",
+          "• 초대 문자로 추첨.",
+          "• 처벌할 수감자를 직접 선정."
+        ],
+        characters: [
+          {
+            name: "스타",
+            tags: ["중력 조작", "남성"],
+            image: "https://i.ibb.co/ZDrSMY0/S-0.png"
+          }
+        ]
+      },
+      prisoner: {
+        badge: "ROLE: PRISONER",
+        badgeColor: "text-pink-400",
+        title: "수감자 [캐릭터 4인]",
+        keywords: ["가해자", "고립"],
+        descriptions: [
+          "• 과거 증인에게 피해를 준 대상.",
+          "• 증인의 직접 선정으로 섬에 강제 이송됨."
+        ],
+        characters: [
+          {
+            name: "퀴니",
+            tags: ["화염", "여성"],
+            image: "https://i.ibb.co/G3Wq92kn/Q-0.png"
+          },
+          {
+            name: "오메가",
+            tags: ["무능력", "여성"],
+            image: "https://i.ibb.co/DDTx66c1/O-4.png"
+          },
+          {
+            name: "알파",
+            tags: ["능력 부여", "여성"],
+            image: "https://i.ibb.co/9kYKmdXB/A-3.png"
+          },
+          {
+            name: "카미",
+            tags: ["신체 강화", "남성"],
+            image: "https://i.ibb.co/TMk8LVNC/K-3.png"
+          }
+        ]
+      },
+      executor: {
+        badge: "ROLE: EXECUTOR",
+        badgeColor: "text-purple-400",
+        title: "집행자 [캐릭터 1인]",
+        keywords: ["집행", "진행자"],
+        descriptions: [
+          "• 증인을 모집.",
+          "• 규칙에 반한 행동을 즉시 처벌.",
+          "• 섬의 총괄 관리인."
+        ],
+        characters: [
+          {
+            name: "베타",
+            tags: ["크리에이트", "남성"],
+            image: "https://i.ibb.co/dsGXmsCh/V-1.png"
+          }
+        ]
+      }
+    };
+
+    let currentOpenRole = null;
+    const bgm = document.getElementById('bgm-audio');
+    const audioController = document.getElementById('audio-controller');
+    const toggleBtn = document.getElementById('audio-toggle-btn');
+    const muteBtn = document.getElementById('audio-mute-btn');
+    const progressBar = document.getElementById('audio-progress');
+    const progressContainer = document.getElementById('progress-container');
+    const timeDisplay = document.getElementById('audio-current-time');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const iconSound = document.getElementById('icon-sound');
+    const iconMuted = document.getElementById('icon-muted');
+
+    // 1. 진입 버튼 클릭 처리
+    document.getElementById('btn-enter').addEventListener('click', function() {
+      // 첫 화면 숨기기 & 본문 노출
+      document.getElementById('intro-screen').classList.add('hidden');
+      const mainContent = document.getElementById('main-content');
+      mainContent.classList.remove('hidden');
+      audioController.classList.remove('hidden');
+
+      // 상단 스크롤
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // 오디오 재생
+      bgm.play().then(() => {
+        iconPlay.classList.add('hidden');
+        iconPause.classList.remove('hidden');
+      }).catch(err => {
+        // 브라우저 자동재생 방지 시 일시정지 상태 아이콘으로 초기화
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+      });
+    });
+
+    // 오디오 재생/일시정지 토글
+    toggleBtn.addEventListener('click', () => {
+      if (bgm.paused) {
+        bgm.play();
+        iconPlay.classList.add('hidden');
+        iconPause.classList.remove('hidden');
+      } else {
+        bgm.pause();
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+      }
+    });
+
+    // 음소거 토글
+    muteBtn.addEventListener('click', () => {
+      bgm.muted = !bgm.muted;
+      if (bgm.muted) {
+        iconSound.classList.add('hidden');
+        iconMuted.classList.remove('hidden');
+      } else {
+        iconSound.classList.remove('hidden');
+        iconMuted.classList.add('hidden');
+      }
+    });
+
+    // 프로그레스 바 갱신
+    bgm.addEventListener('timeupdate', () => {
+      if (bgm.duration) {
+        const percent = (bgm.currentTime / bgm.duration) * 100;
+        progressBar.style.width = percent + '%';
+
+        const minutes = Math.floor(bgm.currentTime / 60);
+        const seconds = Math.floor(bgm.currentTime % 60);
+        timeDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+      }
+    });
+
+    // 프로그레스 바 클릭 이동
+    progressContainer.addEventListener('click', (e) => {
+      if (!bgm.duration) return;
+      const rect = progressContainer.getBoundingClientRect();
+      const clickPos = (e.clientX - rect.left) / rect.width;
+      bgm.currentTime = clickPos * bgm.duration;
+    });
+
+    // 팝업 열기
+    function openRoleModal(roleKey) {
+      currentOpenRole = roleKey;
+      const data = ROLE_DATA[roleKey];
+      if (!data) return;
+
+      const badge = document.getElementById('modal-role-badge');
+      badge.textContent = data.badge;
+      badge.className = `text-xs font-mono mb-1 ${data.badgeColor}`;
+
+      document.getElementById('modal-role-title').textContent = data.title;
+
+      // 키워드 태그 생성
+      const kwContainer = document.getElementById('modal-role-keywords');
+      kwContainer.innerHTML = '';
+      data.keywords.forEach(kw => {
+        const span = document.createElement('span');
+        span.className = "px-2 py-0.5 rounded text-xs bg-neutral-800 text-pink-300 border border-neutral-700 font-mono";
+        span.textContent = `[ ${kw} ]`;
+        kwContainer.appendChild(span);
+      });
+
+      // 설명 리스트 생성
+      const descContainer = document.getElementById('modal-role-desc');
+      descContainer.innerHTML = '';
+      data.descriptions.forEach(desc => {
+        const p = document.createElement('p');
+        p.className = "text-gray-300 leading-relaxed";
+        p.textContent = desc;
+        descContainer.appendChild(p);
+      });
+
+      document.getElementById('role-modal').classList.remove('hidden');
+    }
+
+    // 팝업 닫기: 팝업을 닫을 때 해당 카테고리 아래 캐릭터 목록을 해금하여 노출
+    function closeRoleModal() {
+      const modal = document.getElementById('role-modal');
+      modal.classList.add('hidden');
+
+      if (currentOpenRole) {
+        renderCharacterList(currentOpenRole);
+        currentOpenRole = null;
+      }
+    }
+
+    // 캐릭터 목록 렌더링 (팝업을 본 뒤 닫아야만 생성 및 노출)
+    function renderCharacterList(roleKey) {
+      const targetDiv = document.getElementById(`character-list-${roleKey}`);
+      if (!targetDiv) return;
+
+      const data = ROLE_DATA[roleKey];
+      if (!data) return;
+
+      // 이미 생성되어 있다면 보여주기만 처리
+      if (!targetDiv.classList.contains('hidden')) return;
+
+      targetDiv.innerHTML = `
+        <div class="text-[11px] font-mono text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-pink-500 inline-block"></span>
+          해금된 명부 // 인원 (${data.characters.length})
+        </div>
+      `;
+
+      // 캐릭터 카드 추가: 이미지, 이름, 키워드 외 불필요한 사설 배제
+      data.characters.forEach(char => {
+        const card = document.createElement('div');
+        card.className = "cyber-card p-3 rounded-lg flex items-center gap-4 bg-black/90 border border-neutral-800 hover:border-pink-500/70 transition-all";
+
+        card.innerHTML = `
+          <div class="relative w-14 h-14 rounded-md overflow-hidden bg-neutral-900 border border-neutral-700 flex-shrink-0">
+            <img src="${char.image}" alt="${char.name}" class="w-full h-full object-cover object-top" onerror="this.onerror=null; this.src='https://placehold.co/100x100/111827/ffffff?text=${encodeURIComponent(char.name)}';" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h5 class="text-white font-bold text-sm tracking-wide truncate mb-1">${char.name}</h5>
+            <div class="flex flex-wrap gap-1.5">
+              ${char.tags.map(tag => `<span class="px-1.5 py-0.5 rounded text-[11px] bg-neutral-900 text-cyan-300 border border-neutral-800 font-medium">[${tag}]</span>`).join('')}
+            </div>
+          </div>
+        `;
+        targetDiv.appendChild(card);
+      });
+
+      targetDiv.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
